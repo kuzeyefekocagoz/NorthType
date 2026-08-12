@@ -1,0 +1,16 @@
+# Python önbellekleri
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Yerel veritabanı ve veri dosyaları
+*.db
+*.sqlite
+data/
+
+# IDE ve sistem dosyaları
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
