@@ -1,10 +1,30 @@
 import sqlite3
 import os
+import sys
 from datetime import datetime, timedelta
+
+
+def _get_base_dir():
+    """
+    Kalici veri klasorunu bulur.
+
+    - PyInstaller ile derlenmis .exe olarak calisirken (sys.frozen), veriyi
+      script/exe'nin yaninda degil, %APPDATA%\\NorthType altinda tutariz.
+      Cunku --onefile exe'ler her acilista kendini gecici bir klasore
+      (_MEIPASS) acar ve o klasor kapaninca silinir; oraya yazilan veri
+      kalici olmaz.
+    - Normal 'python main.py' ile calisirken eski davranis korunur:
+      dosyalar script'in yanindaki data/ klasorunde kalir.
+    """
+    if getattr(sys, "frozen", False):
+        appdata = os.getenv("APPDATA") or os.path.expanduser("~")
+        return os.path.join(appdata, "NorthType")
+    return os.path.dirname(os.path.abspath(__file__))
+
 
 class Database:
     def __init__(self, db_name="north_type.db"):
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        base_dir = _get_base_dir()
         data_dir = os.path.join(base_dir, "data")
         
         if not os.path.exists(data_dir):
@@ -58,7 +78,33 @@ class Database:
                 used_at TEXT
             )
         """)
+
+        # Uygulama ayarlarini (kalici hafiza) saklamak icin basit key-value tablosu
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS settings (
+                key TEXT PRIMARY KEY,
+                value TEXT
+            )
+        """)
         
+        conn.commit()
+        conn.close()
+
+    def get_setting(self, key, default=None):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT value FROM settings WHERE key = ?", (key,))
+        row = cursor.fetchone()
+        conn.close()
+        return row[0] if row is not None else default
+
+    def set_setting(self, key, value):
+        conn = self.get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO settings (key, value) VALUES (?, ?)
+            ON CONFLICT(key) DO UPDATE SET value = excluded.value
+        """, (key, str(value)))
         conn.commit()
         conn.close()
 
