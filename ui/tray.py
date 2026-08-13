@@ -24,7 +24,7 @@ class TrayManager(QObject):
         open_action.triggered.connect(self.main_window.show)
         
         quit_action = QAction("Çıkış", self)
-        quit_action.triggered.connect(lambda: sys.exit(0))
+        quit_action.triggered.connect(self.quit_app)
         
         menu.addAction(open_action)
         menu.addAction(stats_action)
@@ -34,6 +34,10 @@ class TrayManager(QObject):
         
         self.tray_icon.setContextMenu(menu)
         self.tray_icon.show()
+
+    def quit_app(self):
+        self.main_window.save_settings()
+        sys.exit(0)
 
     def toggle_engine(self):
         if self.main_window.engine.running:
